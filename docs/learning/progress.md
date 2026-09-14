@@ -1,16 +1,17 @@
 # 学习进度
 
-## 当前状态摘要（2026-09-14 第七步）
+## 当前状态摘要（2026-09-14 第八步）
 
-- 当前阶段：第四步首次离线编译与第五步离线编译复验均已通过；第七步已调用离线 `test`，但在测试实际运行前因本地缺少 Surefire JUnit Platform provider 而失败。测试源码编译成功，自动化测试通过尚未得到证明。
-- 学习者回答：已能区分编译成功与应用启动成功；关于 `BUILD SUCCESS` 与测试的原始回答部分正确，ChatGPT 已纠正讲解，但纠正后的判断尚未由学习者单独复核。已能判断 `release 17` 下不能使用 Java 21 才正式支持的语法，并在讲解后区分构建工具运行版本与编译目标。网络故障、生成源码流程、测试缓存范围及本轮测试证据分析的独立解释能力仍待验证。
+- 当前阶段：第四步首次离线编译与第五步离线编译复验均已通过；第七步离线 `test` 在测试运行前因缺少 Surefire JUnit Platform provider 失败；第八步重新确认缺失并进行一次标准缓存解析，但 Maven Central 域名解析失败，缓存与最终离线测试验收均未完成。自动化测试通过仍未得到证明。
+- 学习者回答：已能区分编译成功与应用启动成功；关于 `BUILD SUCCESS` 与测试的原始回答部分正确，ChatGPT 已纠正讲解，但纠正后的判断尚未由学习者单独复核。已能判断 `release 17` 下不能使用 Java 21 才正式支持的语法，并在讲解后区分构建工具运行版本与编译目标。学习者能解释 Repository 替身数据不证明真实数据库记录存在，也能识别只断言姓氏可能放过固定姓氏错误；异常测试中曾提出用 `doThrow` 检查，ChatGPT 已纠正为设置 Repository 未找到、调用真实 Service 并用 `assertThrows` 检查。该教学示例未进入仓库也未执行，纠正后的异常测试理解尚未单独复核。网络故障、生成源码流程、测试缓存范围及测试证据分析的独立解释能力仍待验证。
 - 外部补充证据：学习者提供的 2026-09-14 ChatGPT GitHub 远程提交比较显示，`dev` 为 `52975c6e0ce2a49fe2c7d08cbe4ff1937b45d3a1`，PR #4 分支为 `be6a999d769ce8d414095a7b3df91e046781687d`，共同祖先是该 `dev` 提交，PR 分支当时领先 1 个提交、落后 0 个提交。这是注明日期和来源的历史快照，不是当前实时状态；此前 Codex 离线环境无法核验远程关系的历史事实继续保留。
 - Codex 第七步实际验证：在提交 `25229c6daed4b232dc3bf8d743a52dd9073c0324` 上执行 `./mvnw --offline --batch-mode --no-transfer-progress test`；主代码与 22 个测试源文件成功编译，Surefire 因本地缺少 `surefire-junit-platform:3.5.6` 以 Maven 状态 `1` 终止，未实际运行测试，也未生成 `target/surefire-reports`。测试数量、失败、错误及跳过数量均不可得，不能记为全零通过。
-- 当前边界：自动化测试通过、应用启动、接口、数据库、打包及远程最新 `dev` 仍未验证；离线失败也不证明测试代码有缺陷或外部网络状态。本轮记录：[`07-automated-tests.md`](./07-automated-tests.md)
+- Codex 第八步实际验证：本地 `HEAD` 正是 PR #6 合并提交 `25ac9cfab7214b9b87e446accf0e8c1e1031acb0`，实际 Maven 仓库为 `/root/.m2/repository`，provider 的 POM/JAR 仍不存在。执行联网 `dependency:get` 并要求传递解析时，读取 Maven Central 上的 provider POM 因 `repo.maven.apache.org` 域名解析失败，Maven 状态为 `1`；仅新增无效的 `.lastUpdated` 失败标记。未重复执行已知仍缺 provider 的离线测试，测试仍未实际执行，数量均不可得，`target/surefire-reports` 未生成。
+- 当前边界：自动化测试通过、应用启动、接口、数据库、打包及远程最新 `dev` 仍未验证；缓存下载失败和第七步 provider 解析失败均不证明测试代码有缺陷。第八步记录：[`08-test-cache-preparation.md`](./08-test-cache-preparation.md)
 
 ## 唯一下一步
 
-**补齐可信本地缓存后复验同一测试命令**。先在允许访问 Maven Central 的可信环境中补齐 `org.apache.maven.surefire:surefire-junit-platform:3.5.6` 及其传递依赖，或由可信制品缓存预置；然后在相同提交上重新执行 `./mvnw --offline --batch-mode --no-transfer-progress test`，不得跳过测试或擅自扩大为 `verify`。
+**恢复可信制品解析后补齐缓存并复验同一离线测试命令**。先让现有可信网络/代理链路能够解析并访问 `repo.maven.apache.org:443`，或通过组织现有可信 Maven 镜像提供 `org.apache.maven.surefire:surefire-junit-platform:3.5.6` 及其传递依赖；用第八步的 `dependency:get` 命令确认解析完整后，执行 `./mvnw --offline --batch-mode --no-transfer-progress test`。不得跳过测试或扩大为 `verify`。
 
 ## 第一步：项目初步认识
 
