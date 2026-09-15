@@ -143,3 +143,9 @@ repo.maven.apache.org: Temporary failure in name resolution
 ## 学习者练习（能力待验证）
 
 请用自己的话解释：为什么本轮生成 `.lastUpdated` 后仍不能执行离线测试，以及恢复可信网络后应先观察哪两类证据来确认缓存完整。收到学习者回答或操作证据前，此项能力标记为“待验证”。
+
+## 2026-09-15 Windows 本地续作（新增证据）
+
+云端本页记录的失败保持为当时事实。迁移到 Windows 后从空依赖仓库重新准备缓存，provider 解析恢复；首次离线测试又发现缺少 junit-platform-launcher:6.0.3，标准补齐后原离线 test 成功：237 个测试、失败 0、错误 0、跳过 0，Maven 退出状态 0，19 份报告汇总一致。第八步验收现已通过。
+
+详见 [`08-windows-cache-revalidation.md`](./08-windows-cache-revalidation.md)，其中分别记录实际命令、两次离线验收、学习者回答、能力边界和下一步建议。
