@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.orm.ObjectRetrievalFailureException;
 import org.springframework.samples.petclinic.model.PetType;
@@ -17,6 +18,7 @@ import org.springframework.samples.petclinic.repository.VisitRepository;
 import org.springframework.samples.petclinic.service.ClinicServiceImpl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -68,6 +70,20 @@ class ClinicServicePetTypeNotFoundTests {
         PetType result = clinicService.findPetTypeById(999);
 
         assertThat(result).isNull();
+        verify(petTypeRepository).findById(999);
+    }
+
+    @Test
+    void shouldPropagatePetTypeResourceFailure() {
+        DataAccessResourceFailureException failure =
+            new DataAccessResourceFailureException("Database resource unavailable");
+        given(petTypeRepository.findById(999)).willThrow(failure);
+
+        DataAccessResourceFailureException actual = assertThrows(
+            DataAccessResourceFailureException.class,
+            () -> clinicService.findPetTypeById(999));
+
+        assertThat(actual).isSameAs(failure);
         verify(petTypeRepository).findById(999);
     }
 }
