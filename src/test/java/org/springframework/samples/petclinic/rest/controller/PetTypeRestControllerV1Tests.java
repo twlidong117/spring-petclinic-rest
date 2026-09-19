@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.samples.petclinic.mapper.PetTypeMapper;
 import org.springframework.samples.petclinic.model.PetType;
 import org.springframework.samples.petclinic.rest.advice.ExceptionControllerAdvice;
@@ -125,6 +126,24 @@ class PetTypeRestControllerV1Tests {
         this.mockMvc.perform(get("/api/pettypes/999")
         	.accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "OWNER_ADMIN")
+    void testGetPetTypeResourceFailure() throws Exception {
+        given(this.clinicService.findPetTypeById(999))
+            .willThrow(new DataAccessResourceFailureException("Database resource unavailable"));
+
+        this.mockMvc.perform(get("/api/pettypes/999")
+                .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isInternalServerError())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.status").value(500))
+            .andExpect(jsonPath("$.title").value("DataAccessResourceFailureException"))
+            .andExpect(jsonPath("$.detail")
+                .value("An unexpected error occurred while processing your request"))
+            .andExpect(jsonPath("$.timestamp").exists())
+            .andExpect(jsonPath("$.schemaValidationErrors").isEmpty());
     }
 
     @Test
