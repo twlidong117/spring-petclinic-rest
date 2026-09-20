@@ -20,6 +20,8 @@ import org.springframework.samples.petclinic.rest.controller.v1.PetTypeRestContr
 import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
@@ -236,6 +238,46 @@ class PetTypeRestControllerV1Tests {
             .andExpect(jsonPath("$.schemaValidationErrors[0].field").value("name"))
             .andExpect(jsonPath("$.schemaValidationErrors[0].rejectedValue").value("null"))
             .andExpect(jsonPath("$.schemaValidationErrors[0].defaultMessage").isNotEmpty());
+
+        verifyNoInteractions(this.clinicService);
+    }
+
+    @ParameterizedTest(name = "accept name length {0}")
+    @ValueSource(ints = {1, 80})
+    @WithMockUser(roles = "VET_ADMIN")
+    void testCreatePetTypeNameLengthAccepted(int length) throws Exception {
+        String name = "a".repeat(length);
+        doAnswer(invocation -> {
+            PetType petType = invocation.getArgument(0);
+            assertEquals(name, petType.getName());
+            assertNull(petType.getId());
+            petType.setId(7);
+            return null;
+        }).when(this.clinicService).savePetType(any(PetType.class));
+
+        this.mockMvc.perform(post("/api/pettypes")
+                .content("{\"name\":\"" + name + "\"}")
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.name").value(name))
+            .andExpect(jsonPath("$.id").value(7));
+
+        verify(this.clinicService).savePetType(any(PetType.class));
+    }
+
+    @ParameterizedTest(name = "reject name length {0}")
+    @ValueSource(ints = {0, 81})
+    @WithMockUser(roles = "VET_ADMIN")
+    void testCreatePetTypeNameLengthRejected(int length) throws Exception {
+        String name = "a".repeat(length);
+        this.mockMvc.perform(post("/api/pettypes")
+                .content("{\"name\":\"" + name + "\"}")
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.schemaValidationErrors.length()").value(1))
+            .andExpect(jsonPath("$.schemaValidationErrors[0].field").value("name"))
+            .andExpect(jsonPath("$.schemaValidationErrors[0].rejectedValue").value(name));
 
         verifyNoInteractions(this.clinicService);
     }
