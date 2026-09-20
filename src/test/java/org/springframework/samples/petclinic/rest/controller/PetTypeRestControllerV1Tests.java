@@ -39,7 +39,12 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -193,13 +198,26 @@ class PetTypeRestControllerV1Tests {
     @Test
     @WithMockUser(roles="VET_ADMIN")
     void testCreatePetTypeSuccess() throws Exception {
-    	PetType newPetType = petTypes.get(0);
-    	newPetType.setId(null);
-    	ObjectMapper mapper = new ObjectMapper();
-        String newPetTypeAsJSON = mapper.writeValueAsString(petTypeMapper.toPetTypeFieldsDto(newPetType));
-    	this.mockMvc.perform(post("/api/pettypes")
-    		.content(newPetTypeAsJSON).accept(MediaType.APPLICATION_JSON_VALUE).contentType(MediaType.APPLICATION_JSON_VALUE))
-    		.andExpect(status().isCreated());
+        doAnswer(invocation -> {
+            PetType petType = invocation.getArgument(0);
+            assertEquals("fish", petType.getName());
+            assertNull(petType.getId());
+            // Simulate the identifier assigned during saving; no real database write.
+            petType.setId(7);
+            return null;
+        }).when(this.clinicService).savePetType(any(PetType.class));
+
+        this.mockMvc.perform(post("/api/pettypes")
+                .content("{\"name\":\"fish\"}")
+                .accept(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isCreated())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(header().string("Location", "/api/pettypes/7"))
+            .andExpect(jsonPath("$.id").value(7))
+            .andExpect(jsonPath("$.name").value("fish"));
+
+        verify(this.clinicService).savePetType(any(PetType.class));
     }
 
     @Test
