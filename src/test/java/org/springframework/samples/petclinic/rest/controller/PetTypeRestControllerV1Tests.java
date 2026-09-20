@@ -45,6 +45,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -223,15 +224,21 @@ class PetTypeRestControllerV1Tests {
     @Test
     @WithMockUser(roles="VET_ADMIN")
     void testCreatePetTypeError() throws Exception {
-    	PetType newPetType = petTypes.get(0);
-    	newPetType.setId(null);
-    	newPetType.setName(null);
-    	ObjectMapper mapper = new ObjectMapper();
-        String newPetTypeAsJSON = mapper.writeValueAsString(petTypeMapper.toPetTypeDto(newPetType));
-    	this.mockMvc.perform(post("/api/pettypes")
-        		.content(newPetTypeAsJSON).accept(MediaType.APPLICATION_JSON_VALUE).contentType(MediaType.APPLICATION_JSON_VALUE))
-        		.andExpect(status().isBadRequest());
-     }
+        this.mockMvc.perform(post("/api/pettypes")
+                .content("{\"name\":null}")
+                .accept(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.title").value("MethodArgumentNotValidException"))
+            .andExpect(jsonPath("$.schemaValidationErrors.length()").value(1))
+            .andExpect(jsonPath("$.schemaValidationErrors[0].field").value("name"))
+            .andExpect(jsonPath("$.schemaValidationErrors[0].rejectedValue").value("null"))
+            .andExpect(jsonPath("$.schemaValidationErrors[0].defaultMessage").isNotEmpty());
+
+        verifyNoInteractions(this.clinicService);
+    }
 
     @Test
     @WithMockUser(roles="VET_ADMIN")
