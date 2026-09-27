@@ -242,6 +242,28 @@ class PetTypeRestControllerV1Tests {
         verifyNoInteractions(this.clinicService);
     }
 
+    @Test
+    @WithMockUser(roles = "VET_ADMIN")
+    void testCreatePetTypeSingleSpaceNameAccepted() throws Exception {
+        doAnswer(invocation -> {
+            PetType petType = invocation.getArgument(0);
+            assertEquals(" ", petType.getName());
+            assertNull(petType.getId());
+            // Simulate saving without changing the supplied name.
+            petType.setId(7);
+            return null;
+        }).when(this.clinicService).savePetType(any(PetType.class));
+
+        this.mockMvc.perform(post("/api/pettypes")
+                .content("{\"name\":\" \"}")
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.name").value(" "))
+            .andExpect(jsonPath("$.id").value(7));
+
+        verify(this.clinicService).savePetType(any(PetType.class));
+    }
+
     @ParameterizedTest(name = "accept name length {0}")
     @ValueSource(ints = {1, 80})
     @WithMockUser(roles = "VET_ADMIN")
