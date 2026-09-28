@@ -43,6 +43,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
@@ -307,18 +308,29 @@ class PetTypeRestControllerV1Tests {
     @Test
     @WithMockUser(roles="VET_ADMIN")
     void testUpdatePetTypeSuccess() throws Exception {
-    	given(this.clinicService.findPetTypeById(2)).willReturn(petTypes.get(1));
-    	PetType newPetType = petTypes.get(1);
-    	newPetType.setName("dog I");
-    	ObjectMapper mapper = new ObjectMapper();
-        String newPetTypeAsJSON = mapper.writeValueAsString(petTypeMapper.toPetTypeDto(newPetType));
-    	this.mockMvc.perform(put("/api/pettypes/2")
-    		.content(newPetTypeAsJSON).accept(MediaType.APPLICATION_JSON_VALUE).contentType(MediaType.APPLICATION_JSON_VALUE))
-        	.andExpect(content().contentType("application/json"))
-        	.andExpect(status().isNoContent());
+        PetType currentPetType = petTypes.get(1);
+        given(this.clinicService.findPetTypeById(2)).willReturn(currentPetType);
+        assertEquals("dog", currentPetType.getName());
 
-    	this.mockMvc.perform(get("/api/pettypes/2")
-           	.accept(MediaType.APPLICATION_JSON).contentType(MediaType.APPLICATION_JSON_VALUE))
+        doAnswer(invocation -> {
+            PetType savedPetType = invocation.getArgument(0);
+            assertSame(currentPetType, savedPetType);
+            assertEquals(2, savedPetType.getId());
+            assertEquals("dog I", savedPetType.getName());
+            return null;
+        }).when(this.clinicService).savePetType(any(PetType.class));
+
+        this.mockMvc.perform(put("/api/pettypes/2")
+                .content("{\"id\":2,\"name\":\"dog I\"}")
+                .accept(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(content().contentType("application/json"))
+            .andExpect(status().isNoContent());
+
+        verify(this.clinicService).savePetType(any(PetType.class));
+
+        this.mockMvc.perform(get("/api/pettypes/2")
+                .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(content().contentType("application/json"))
             .andExpect(jsonPath("$.id").value(2))
