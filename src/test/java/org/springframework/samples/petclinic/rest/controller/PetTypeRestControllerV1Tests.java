@@ -47,6 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -335,6 +336,20 @@ class PetTypeRestControllerV1Tests {
             .andExpect(content().contentType("application/json"))
             .andExpect(jsonPath("$.id").value(2))
             .andExpect(jsonPath("$.name").value("dog I"));
+    }
+
+    @Test
+    @WithMockUser(roles="VET_ADMIN")
+    void testUpdatePetTypeNotFound() throws Exception {
+        given(this.clinicService.findPetTypeById(999)).willReturn(null);
+
+        this.mockMvc.perform(put("/api/pettypes/999")
+                .content("{\"id\":999,\"name\":\"dog I\"}")
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isNotFound());
+
+        verify(this.clinicService).findPetTypeById(999);
+        verify(this.clinicService, never()).savePetType(any());
     }
 
     @Test
