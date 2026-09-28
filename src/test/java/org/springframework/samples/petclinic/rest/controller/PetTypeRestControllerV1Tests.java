@@ -355,14 +355,19 @@ class PetTypeRestControllerV1Tests {
     @Test
     @WithMockUser(roles="VET_ADMIN")
     void testUpdatePetTypeError() throws Exception {
-    	PetType newPetType = petTypes.get(0);
-    	newPetType.setName("");
-    	ObjectMapper mapper = new ObjectMapper();
-        String newPetTypeAsJSON = mapper.writeValueAsString(petTypeMapper.toPetTypeDto(newPetType));
-    	this.mockMvc.perform(put("/api/pettypes/1")
-    		.content(newPetTypeAsJSON).accept(MediaType.APPLICATION_JSON_VALUE).contentType(MediaType.APPLICATION_JSON_VALUE))
-        	.andExpect(status().isBadRequest());
-     }
+        this.mockMvc.perform(put("/api/pettypes/1")
+                .content("{\"id\":1,\"name\":\"\"}")
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.title").value("MethodArgumentNotValidException"))
+            .andExpect(jsonPath("$.schemaValidationErrors.length()").value(1))
+            .andExpect(jsonPath("$.schemaValidationErrors[0].field").value("name"))
+            .andExpect(jsonPath("$.schemaValidationErrors[0].rejectedValue").value(""));
+
+        verifyNoInteractions(this.clinicService);
+    }
 
     @Test
     @WithMockUser(roles="VET_ADMIN")
